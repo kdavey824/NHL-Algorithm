@@ -7,7 +7,7 @@
 # Creation Date: 2/4/2020
 # Created by Kyle Davey with analytical insight from Nick Consolazio
 #
-
+import pandas as pd
 
 class TeamStats:
     def __init__(self,
@@ -47,7 +47,6 @@ class TeamStats:
                 self.isHome = isHome
                 self.pimPerGame = pimPerGame
 
-               # self.gfDifference = xGF - aGF #Lower number better
                 self.goalRatio = goalsForPerGame / goalsAgainstPerGame
                 self.totalScore = 0 #Start at 0
 
@@ -66,6 +65,11 @@ class TeamStats:
         print('CF%', self.corsiFor)
         print('Wins in Last 10', self.winsInLastTen)
         print('Goal Ratio', self.goalRatio)
+        print('Home Win %', self.homeWinPercentage)
+        print('Away Win %', self.awayWinPercentage)
+        print('H2H', self.h2hWins)
+        print('Is Home', self.isHome)
+        print('Pims per game', self.pimPerGame)
         print('Total Score', self.totalScore)
         
 def calcInitialScore(teams):
@@ -73,7 +77,6 @@ def calcInitialScore(teams):
     backupWeight = -3
     b2bWeight = -1
     b2baWeight = -3 #This totals -4 
-    # corsiWeight = 3 
     winsInLastTenWeight = 4 #Only if wins = 7 or above
     negativeWinsInLastTen = -2 #Only if wins = 2 or less
 
@@ -99,11 +102,30 @@ def calcInitialScore(teams):
 #Team Two: Away        
 def evaluateMatchup(teamOne, teamTwo, leagueAvg):
     #Include powerplay comparison. goalRatio comparison
+    ppAdvantage(teamOne, teamTwo, leagueAvg)
+    goalRatioAdvantage(teamOne, teamTwo)
+    gsaaAdvantage(teamOne, teamTwo)
+    gaaAdvantage(teamOne, teamTwo)
+    corsiAdvantage(teamOne, teamTwo)
+    homeWinAdvantage(teamOne, teamTwo, leagueAvg)
+    awayWinAdvantage(teamOne, teamTwo, leagueAvg)
+    h2hAdvantage(teamOne, teamTwo)
+    pimsAdvantage(teamOne, teamTwo)
+
+    teamOneResult, teamTwoResult = teamOne.totalScore, teamTwo.totalScore
+    print('-------------------------------------------')
+    print(teamOne.name, " Score: ", teamOneResult)
+    print(teamTwo.name, " Score: ", teamTwoResult)
+
+    if teamOneResult > teamTwoResult:
+        print(teamOne.name, " is the predicted winner!")
+        print('-------------------------------------------')
+    else:
+        print(teamTwo.name, " is the predicted winner!")
+        print('-------------------------------------------')
+
+def ppAdvantage(teamOne, teamTwo, leagueAvg):
     ppAboveWeight = 2
-    goalRatioWeightHigh = 4 #if Ratio is larger than .2
-    goalRatioWeightLow = 2 #if Ratio is .2 or less
-    gsaaWeight = 2
-    gaaWeight = 1
 
     if teamOne.powerPlayPercentage > leagueAvg.powerPlayPercentage and teamTwo.penaltyKillPercentage < leagueAvg.penaltyKillPercentage:
         teamOne.totalScore+=ppAboveWeight
@@ -112,6 +134,9 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamTwo.totalScore+=ppAboveWeight
         print('PP Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def goalRatioAdvantage(teamOne, teamTwo):
+    goalRatioWeightHigh = 4 #if Ratio is larger than .2
+    goalRatioWeightLow = 2 #if Ratio is .2 or less
     matchupGoalRatio = teamOne.goalRatio - teamTwo.goalRatio
     if matchupGoalRatio > 0: #Team one has higher ratio
         if matchupGoalRatio > 0.2:
@@ -129,6 +154,8 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
             teamTwo.totalScore+=goalRatioWeightLow
             print('Goal Ratio Advantage Low, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def gsaaAdvantage(teamOne, teamTwo):
+    gsaaWeight = 2
 
     if teamOne.gsaa > teamTwo.gsaa:
         teamOne.totalScore+=gsaaWeight
@@ -137,13 +164,16 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamTwo.totalScore+=gsaaWeight
         print('GSAA Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def gaaAdvantage(teamOne, teamTwo):
+    gaaWeight = 1
     if teamOne.gaa < teamTwo.gaa:
         teamOne.totalScore+=gaaWeight
         print('GAA Advantage, New Score for ', teamOne.name, ': ', teamOne.totalScore)
     else:
         teamTwo.totalScore+=gaaWeight
         print('GAA Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
-    
+
+def corsiAdvantage(teamOne, teamTwo):
     corsiDif = teamOne.corsiFor - teamTwo.corsiFor
     if corsiDif > 0: #Team one higher
         if corsiDif <= 1.5:
@@ -161,6 +191,7 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
             teamTwo.totalScore+=2
             print('Corsi Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def homeWinAdvantage(teamOne, teamTwo, leagueAvg):
     if teamOne.homeWinPercentage >= 64:
         teamOne.totalScore+=4
         print('Big Home Advantage, New Score for ', teamOne.name, ': ', teamOne.totalScore)
@@ -174,6 +205,7 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamOne.totalScore-=1
         print('Home disadvantage, New Score for ', teamOne.name, ': ', teamOne.totalScore)
 
+def awayWinAdvantage(teamOne, teamTwo, leagueAvg):
     if teamTwo.awayWinPercentage >= 57:
         teamTwo.totalScore+=3
         print('Big Away Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
@@ -187,6 +219,7 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamTwo.totalScore-=2
         print('Away disadvantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def h2hAdvantage(teamOne, teamTwo):
     if teamOne.h2hWins > teamTwo.h2hWins:
         teamOne.totalScore+=1
         print('H2H Advantage, New Score for ', teamOne.name, ': ', teamOne.totalScore)
@@ -195,6 +228,7 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamTwo.totalScore+=1
         print('H2H Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
 
+def pimsAdvantage(teamOne, teamTwo):
     if teamOne.pimPerGame > teamTwo.pimPerGame:
         teamTwo.totalScore+=1
         print('PIM Per Game Advantage, New Score for ', teamTwo.name, ': ', teamTwo.totalScore)
@@ -202,22 +236,6 @@ def evaluateMatchup(teamOne, teamTwo, leagueAvg):
         teamOne.totalScore+=1
         print('PIM Per Game Advantage, New Score for ', teamOne.name, ': ', teamOne.totalScore)
 
-    teamOneResult, teamTwoResult = teamOne.totalScore, teamTwo.totalScore
-    print('-------------------------------------------')
-    print(teamOne.name, " Score: ", teamOneResult)
-    print(teamTwo.name, " Score: ", teamTwoResult)
-
-    if teamOneResult > teamTwoResult:
-        print(teamOne.name, " is the predicted winner!")
-        print('-------------------------------------------')
-    else:
-        print(teamTwo.name, " is the predicted winner!")
-        print('-------------------------------------------')
-
-
-
-import csv
-import pandas as pd
 
 if __name__ == "__main__":
     
@@ -228,32 +246,59 @@ if __name__ == "__main__":
     for t in teams:
         teamList.append(TeamStats(*t))
 
-    knights = next(x for x in teamList if x.name == 'Vegas Golden Knights')
-    lightning = next(x for x in teamList if x.name == 'Tampa Bay Lightning')
-    hurricanes = next(x for x in teamList if x.name == 'Carolina Hurricanes')
-    blues = next(x for x in teamList if x.name == 'St. Louis Blues')
-    oilers = next(x for x in teamList if x.name == 'Edmonton Oilers')
-    coyotes = next(x for x in teamList if x.name == 'Arizona Coyotes')
-    avalanche = next(x for x in teamList if x.name == 'Colorado Avalanche')
-    sabres = next(x for x in teamList if x.name == 'Buffalo Sabres')
-    leafs = next(x for x in teamList if x.name == 'Toronto Maple Leafs')
-    canadiens = next(x for x in teamList if x.name == 'Montreal Canadiens')
-    flyers = next(x for x in teamList if x.name == 'Philadelphia Flyers')
-    capitals = next(x for x in teamList if x.name == 'Washington Capitals')
-    kings = next(x for x in teamList if x.name == 'Los Angeles Kings')
-    devils = next(x for x in teamList if x.name == 'New Jersey Devils')
-    blueJackets = next(x for x in teamList if x.name == 'Columbus Blue Jackets')
-    stars = next(x for x in teamList if x.name == 'Dallas Stars')
-    flames = next(x for x in teamList if x.name == 'Calgary Flames')
-    canucks = next(x for x in teamList if x.name == 'Vancouver Canucks')
-    bruins = next(x for x in teamList if x.name == 'Boston Bruins')
-    jets = next(x for x in teamList if x.name == 'Winnipeg Jets')
-    senators = next(x for x in teamList if x.name == 'Ottawa Senators')
-    penguins = next(x for x in teamList if x.name == 'Pittsburgh Penguins')
-    panthers = next(x for x in teamList if x.name == 'Florida Panthers')
-    redWings = next(x for x in teamList if x.name == 'Detroit Red Wings')
-    blackhawks = next(x for x in teamList if x.name == 'Chicago Blackhawks')
-    ducks = next(x for x in teamList if x.name == 'Anaheim Ducks')
+    for x in teamList:
+        if x.name == 'Vegas Golden Knights': 
+            knights = x
+        elif x.name == 'Tampa Bay Lightning':
+            lightning = x
+        elif x.name == 'Carolina Hurricanes':
+            hurricanes = x
+        elif x.name == 'St. Louis Blues':
+            blues = x
+        elif x.name == 'Edmonton Oilers':
+            oilers = x
+        elif x.name == 'Arizona Coyotes':
+            coyotes = x
+        elif x.name == 'Colorado Avalanche':
+            avalanche = x
+        elif x.name == 'Buffalo Sabres':
+            sabres = x
+        elif x.name == 'Toronto Maple Leafs':
+            leafs = x
+        elif x.name == 'Montreal Canadiens':
+            canadiens = x
+        elif x.name == 'Philadelphia Flyers':
+            flyers = x
+        elif x.name == 'Washington Capitals':
+            capitals = x
+        elif x.name == 'Los Angeles Kings':
+            kings = x
+        elif x.name == 'New Jersey Devils':
+            devils = x
+        elif x.name == 'Columbus Blue Jackets':
+            blueJackets = x
+        elif x.name == 'Dallas Stars':
+            stars = x
+        elif x.name == 'Calgary Flames':
+            flames = x
+        elif x.name == 'Vancouver Canucks':
+            canucks = x
+        elif x.name == 'Boston Bruins':
+            bruins = x
+        elif x.name == 'Winnipeg Jets':
+            jets = x
+        elif x.name == 'Ottawa Senators':
+            senators = x
+        elif x.name == 'Pittsburgh Penguins':
+            penguins = x
+        elif x.name == 'Florida Panthers':
+            panthers = x
+        elif x.name == 'Detroit Red Wings':
+            redWings = x
+        elif x.name == 'Chicago Blackhawks':
+            blackhawks = x
+        elif x.name == 'Anaheim Ducks':
+            ducks = x
 
     calcInitialScore(teamList)
     evaluateMatchup(redWings, bruins, teamList[0])
